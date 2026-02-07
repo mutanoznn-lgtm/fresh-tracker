@@ -2,20 +2,7 @@ export interface Product {
   id: string;
   name: string;
   manufactureDate: string;
-  shelfLife: number;
-  shelfLifeUnit: "months" | "years";
   expirationDate: string;
-}
-
-export function calculateExpirationDate(
-  manufactureDate: string,
-  shelfLife: number,
-  unit: "months" | "years"
-): string {
-  const date = new Date(manufactureDate);
-  const months = unit === "years" ? shelfLife * 12 : shelfLife;
-  date.setMonth(date.getMonth() + months);
-  return date.toISOString().split("T")[0];
 }
 
 export function getDaysUntilExpiration(expirationDate: string): number {
