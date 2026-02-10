@@ -1,62 +1,112 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LogOut, Search, Copy, Package, CheckCircle, Eye, Users } from "lucide-react";
-import type { Product } from "@/lib/products";
-import {
-  loadProducts,
-  loadAllProducts,
-  saveProducts,
-  getDaysUntilExpiration,
-  generateWhatsAppText,
-} from "@/lib/products";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { getDaysUntilExpiration, generateWhatsAppText } from "@/lib/products";
 import AddProductForm from "./AddProductForm";
 import ProductCard from "./ProductCard";
 
-interface DashboardProps {
-  user: string;
-  onLogout: () => void;
+interface DbProduct {
+  id: string;
+  name: string;
+  manufacture_date: string;
+  expiration_date: string;
+  user_id: string;
 }
 
-const Dashboard = ({ user, onLogout }: DashboardProps) => {
-  const isAdmin = user === "gabriela";
-  const [products, setProducts] = useState<Product[]>(() => loadProducts(user));
-  const [allUsersData, setAllUsersData] = useState(() => isAdmin ? loadAllProducts() : []);
+interface CardProduct {
+  id: string;
+  name: string;
+  manufactureDate: string;
+  expirationDate: string;
+}
+
+const toCard = (p: DbProduct): CardProduct => ({
+  id: p.id,
+  name: p.name,
+  manufactureDate: p.manufacture_date,
+  expirationDate: p.expiration_date,
+});
+
+const Dashboard = () => {
+  const { user, username, isAdmin, signOut } = useAuth();
+  const [products, setProducts] = useState<CardProduct[]>([]);
+  const [allUsersData, setAllUsersData] = useState<{ user: string; products: CardProduct[] }[]>([]);
   const [search, setSearch] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const refreshAllUsers = useCallback(() => {
-    if (isAdmin) setAllUsersData(loadAllProducts());
-  }, [isAdmin]);
+  const fetchProducts = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("products")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("expiration_date", { ascending: true });
+    setProducts((data ?? []).map(toCard));
+  }, [user]);
 
-  const updateProducts = useCallback(
-    (newProducts: Product[]) => {
-      setProducts(newProducts);
-      saveProducts(user, newProducts);
-      refreshAllUsers();
-    },
-    [user, refreshAllUsers]
-  );
+  const fetchAllUsers = useCallback(async () => {
+    if (!isAdmin) return;
+    const { data: profiles } = await supabase.from("profiles").select("user_id, username");
+    const { data: allProducts } = await supabase.from("products").select("*").order("expiration_date", { ascending: true });
+    if (!profiles || !allProducts) return;
+
+    const grouped: Record<string, { user: string; products: CardProduct[] }> = {};
+    for (const profile of profiles) {
+      if (profile.user_id === user?.id) continue;
+      const userProds = allProducts
+        .filter((p: any) => p.user_id === profile.user_id)
+        .map(toCard);
+      if (userProds.length > 0) {
+        grouped[profile.user_id] = { user: profile.username, products: userProds };
+      }
+    }
+    setAllUsersData(Object.values(grouped));
+  }, [isAdmin, user]);
+
+  useEffect(() => {
+    fetchProducts();
+    fetchAllUsers();
+  }, [fetchProducts, fetchAllUsers]);
 
   const handleAdd = useCallback(
-    (product: Product) => {
-      updateProducts([...products, product]);
+    async (name: string, manufactureDate: string, expirationDate: string) => {
+      if (!user) return;
+      await supabase.from("products").insert({
+        user_id: user.id,
+        name,
+        manufacture_date: manufactureDate,
+        expiration_date: expirationDate,
+      });
+      fetchProducts();
+      fetchAllUsers();
     },
-    [products, updateProducts]
+    [user, fetchProducts, fetchAllUsers]
   );
 
   const handleDelete = useCallback(
-    (id: string) => {
-      updateProducts(products.filter((p) => p.id !== id));
+    async (id: string) => {
+      await supabase.from("products").delete().eq("id", id);
+      fetchProducts();
+      fetchAllUsers();
     },
-    [products, updateProducts]
+    [fetchProducts, fetchAllUsers]
   );
+
+  const sortedFiltered = useMemo(() => {
+    const filtered = products.filter((p) =>
+      p.name.toLowerCase().includes(search.toLowerCase())
+    );
+    return filtered.sort(
+      (a, b) => getDaysUntilExpiration(a.expirationDate) - getDaysUntilExpiration(b.expirationDate)
+    );
+  }, [products, search]);
 
   const handleCopy = useCallback(async () => {
     const text = generateWhatsAppText(sortedFiltered);
     try {
       await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     } catch {
       const textarea = document.createElement("textarea");
       textarea.value = text;
@@ -64,27 +114,14 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
       textarea.select();
       document.execCommand("copy");
       document.body.removeChild(textarea);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     }
-  }, [products, search]);
-
-  const sortedFiltered = useMemo(() => {
-    const filtered = products.filter((p) =>
-      p.name.toLowerCase().includes(search.toLowerCase())
-    );
-    return filtered.sort(
-      (a, b) =>
-        getDaysUntilExpiration(a.expirationDate) -
-        getDaysUntilExpiration(b.expirationDate)
-    );
-  }, [products, search]);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [sortedFiltered]);
 
   const stats = useMemo(() => {
     const total = products.length;
-    const expired = products.filter(
-      (p) => getDaysUntilExpiration(p.expirationDate) < 0
-    ).length;
+    const expired = products.filter((p) => getDaysUntilExpiration(p.expirationDate) < 0).length;
     const warning = products.filter((p) => {
       const d = getDaysUntilExpiration(p.expirationDate);
       return d >= 0 && d <= 7;
@@ -106,19 +143,17 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
               <Package className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground sm:text-2xl">
-                Controle de Validade
-              </h1>
+              <h1 className="text-xl font-bold text-foreground sm:text-2xl">Controle de Validade</h1>
               <p className="text-sm text-muted-foreground">
-                Olá, <span className="font-medium text-secondary">{user}</span>
+                Olá, <span className="font-medium text-secondary">{username ?? "Usuário"}</span>
+                {isAdmin && <span className="ml-2 rounded-full bg-primary/20 px-2 py-0.5 text-xs font-medium text-primary">Admin</span>}
               </p>
             </div>
           </div>
-
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={onLogout}
+            onClick={signOut}
             className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-destructive hover:text-destructive"
           >
             <LogOut className="h-4 w-4" />
@@ -127,12 +162,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
         </motion.header>
 
         {/* Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-6 grid grid-cols-3 gap-3"
-        >
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-6 grid grid-cols-3 gap-3">
           <div className="glass rounded-xl p-4 text-center">
             <p className="text-2xl font-bold text-foreground">{stats.total}</p>
             <p className="text-xs text-muted-foreground">Produtos</p>
@@ -147,18 +177,13 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
           </div>
         </motion.div>
 
-        {/* Add Product Form */}
+        {/* Add Product */}
         <div className="mb-6">
           <AddProductForm onAdd={handleAdd} />
         </div>
 
-        {/* Search & Actions */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="mb-4 flex flex-wrap items-center gap-3"
-        >
+        {/* Search & Copy */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="mb-4 flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -169,25 +194,10 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
               className="w-full rounded-lg border border-border bg-muted/50 py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
             />
           </div>
-
           {products.length > 0 && (
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleCopy}
-              className="flex items-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-secondary hover:text-secondary"
-            >
-              {copied ? (
-                <>
-                  <CheckCircle className="h-4 w-4 text-neon-green" />
-                  <span className="text-neon-green">Copiado!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="h-4 w-4" />
-                  Copiar Lista
-                </>
-              )}
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleCopy}
+              className="flex items-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-secondary hover:text-secondary">
+              {copied ? (<><CheckCircle className="h-4 w-4 text-neon-green" /><span className="text-neon-green">Copiado!</span></>) : (<><Copy className="h-4 w-4" />Copiar Lista</>)}
             </motion.button>
           )}
         </motion.div>
@@ -196,68 +206,37 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
         <div className="grid gap-3 sm:grid-cols-2">
           <AnimatePresence mode="popLayout">
             {sortedFiltered.map((product, index) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onDelete={handleDelete}
-                index={index}
-              />
+              <ProductCard key={product.id} product={product} onDelete={handleDelete} index={index} />
             ))}
           </AnimatePresence>
         </div>
 
         {products.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="mt-12 text-center"
-          >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mt-12 text-center">
             <Package className="mx-auto mb-4 h-16 w-16 text-muted-foreground/30" />
-            <p className="text-lg font-medium text-muted-foreground">
-              Nenhum produto cadastrado
-            </p>
-            <p className="text-sm text-muted-foreground/60">
-              Use o formulário acima para adicionar seu primeiro produto
-            </p>
+            <p className="text-lg font-medium text-muted-foreground">Nenhum produto cadastrado</p>
+            <p className="text-sm text-muted-foreground/60">Use o formulário acima para adicionar seu primeiro produto</p>
           </motion.div>
         )}
 
         {products.length > 0 && sortedFiltered.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mt-12 text-center"
-          >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-12 text-center">
             <Search className="mx-auto mb-4 h-12 w-12 text-muted-foreground/30" />
-            <p className="text-muted-foreground">
-              Nenhum produto encontrado para "{search}"
-            </p>
+            <p className="text-muted-foreground">Nenhum produto encontrado para "{search}"</p>
           </motion.div>
         )}
 
-        {/* Admin Panel - All Users */}
+        {/* Admin Panel */}
         {isAdmin && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="mt-10"
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-10">
             <div className="mb-4 flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
-              <h2 className="text-xl font-bold text-foreground">
-                Todos os Usuários
-              </h2>
-              <span className="rounded-full bg-primary/20 px-2 py-0.5 text-xs font-medium text-primary">
-                Admin
-              </span>
+              <h2 className="text-xl font-bold text-foreground">Todos os Usuários</h2>
             </div>
-
             {allUsersData.length === 0 ? (
               <div className="glass rounded-xl p-8 text-center">
                 <Eye className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" />
-                <p className="text-muted-foreground">Nenhum usuário cadastrou produtos ainda</p>
+                <p className="text-muted-foreground">Nenhum outro usuário cadastrou produtos ainda</p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -268,22 +247,12 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
                         {userName.charAt(0).toUpperCase()}
                       </div>
                       {userName}
-                      <span className="text-sm font-normal text-muted-foreground">
-                        ({userProducts.length} produto{userProducts.length !== 1 ? "s" : ""})
-                      </span>
+                      <span className="text-sm font-normal text-muted-foreground">({userProducts.length} produto{userProducts.length !== 1 ? "s" : ""})</span>
                     </h3>
                     <div className="grid gap-3 sm:grid-cols-2">
-                      {userProducts
-                        .sort((a, b) => getDaysUntilExpiration(a.expirationDate) - getDaysUntilExpiration(b.expirationDate))
-                        .map((product, index) => (
-                          <ProductCard
-                            key={product.id}
-                            product={product}
-                            onDelete={() => {}}
-                            index={index}
-                            readOnly
-                          />
-                        ))}
+                      {userProducts.map((product, index) => (
+                        <ProductCard key={product.id} product={product} onDelete={() => {}} index={index} readOnly />
+                      ))}
                     </div>
                   </div>
                 ))}
