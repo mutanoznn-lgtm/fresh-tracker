@@ -34,6 +34,24 @@ export function loadProducts(user: string): Product[] {
   }
 }
 
+export function loadAllProducts(): { user: string; products: Product[] }[] {
+  const result: { user: string; products: Product[] }[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith("produtos_")) {
+      const userName = key.replace("produtos_", "");
+      try {
+        const data = localStorage.getItem(key);
+        const products: Product[] = data ? JSON.parse(data) : [];
+        if (products.length > 0) {
+          result.push({ user: userName, products });
+        }
+      } catch { /* ignore */ }
+    }
+  }
+  return result;
+}
+
 export function saveProducts(user: string, products: Product[]): void {
   localStorage.setItem(`produtos_${user}`, JSON.stringify(products));
 }

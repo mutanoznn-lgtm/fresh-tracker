@@ -7,6 +7,7 @@ interface ProductCardProps {
   product: Product;
   onDelete: (id: string) => void;
   index: number;
+  readOnly?: boolean;
 }
 
 const statusClasses = {
@@ -21,7 +22,7 @@ const statusBadgeClasses = {
   red: "bg-neon-red/20 text-neon-red",
 };
 
-const ProductCard = ({ product, onDelete, index }: ProductCardProps) => {
+const ProductCard = ({ product, onDelete, index, readOnly }: ProductCardProps) => {
   const days = getDaysUntilExpiration(product.expirationDate);
   const status = getStatusColor(days);
   const label = getStatusLabel(days);
@@ -61,15 +62,17 @@ const ProductCard = ({ product, onDelete, index }: ProductCardProps) => {
           </div>
         </div>
 
-        <motion.button
-          whileHover={{ scale: 1.15 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={() => onDelete(product.id)}
-          className="flex-shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-destructive/20 hover:text-destructive"
-          aria-label="Excluir produto"
-        >
-          <Trash2 className="h-4 w-4" />
-        </motion.button>
+        {!readOnly && (
+          <motion.button
+            whileHover={{ scale: 1.15 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => onDelete(product.id)}
+            className="flex-shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-destructive/20 hover:text-destructive"
+            aria-label="Excluir produto"
+          >
+            <Trash2 className="h-4 w-4" />
+          </motion.button>
+        )}
       </div>
     </motion.div>
   );

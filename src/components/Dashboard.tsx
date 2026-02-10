@@ -1,9 +1,10 @@
 import { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, Search, Copy, Package, CheckCircle } from "lucide-react";
+import { LogOut, Search, Copy, Package, CheckCircle, Eye, Users } from "lucide-react";
 import type { Product } from "@/lib/products";
 import {
   loadProducts,
+  loadAllProducts,
   saveProducts,
   getDaysUntilExpiration,
   generateWhatsAppText,
@@ -17,16 +18,23 @@ interface DashboardProps {
 }
 
 const Dashboard = ({ user, onLogout }: DashboardProps) => {
+  const isAdmin = user === "gabriela";
   const [products, setProducts] = useState<Product[]>(() => loadProducts(user));
+  const [allUsersData, setAllUsersData] = useState(() => isAdmin ? loadAllProducts() : []);
   const [search, setSearch] = useState("");
   const [copied, setCopied] = useState(false);
+
+  const refreshAllUsers = useCallback(() => {
+    if (isAdmin) setAllUsersData(loadAllProducts());
+  }, [isAdmin]);
 
   const updateProducts = useCallback(
     (newProducts: Product[]) => {
       setProducts(newProducts);
       saveProducts(user, newProducts);
+      refreshAllUsers();
     },
-    [user]
+    [user, refreshAllUsers]
   );
 
   const handleAdd = useCallback(
@@ -50,7 +58,6 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback for older browsers
       const textarea = document.createElement("textarea");
       textarea.value = text;
       document.body.appendChild(textarea);
@@ -226,6 +233,62 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
             <p className="text-muted-foreground">
               Nenhum produto encontrado para "{search}"
             </p>
+          </motion.div>
+        )}
+
+        {/* Admin Panel - All Users */}
+        {isAdmin && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="mt-10"
+          >
+            <div className="mb-4 flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <h2 className="text-xl font-bold text-foreground">
+                Todos os Usuários
+              </h2>
+              <span className="rounded-full bg-primary/20 px-2 py-0.5 text-xs font-medium text-primary">
+                Admin
+              </span>
+            </div>
+
+            {allUsersData.length === 0 ? (
+              <div className="glass rounded-xl p-8 text-center">
+                <Eye className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" />
+                <p className="text-muted-foreground">Nenhum usuário cadastrou produtos ainda</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {allUsersData.map(({ user: userName, products: userProducts }) => (
+                  <div key={userName} className="glass-strong rounded-xl p-5">
+                    <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold text-foreground">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/20 text-sm font-bold text-secondary">
+                        {userName.charAt(0).toUpperCase()}
+                      </div>
+                      {userName}
+                      <span className="text-sm font-normal text-muted-foreground">
+                        ({userProducts.length} produto{userProducts.length !== 1 ? "s" : ""})
+                      </span>
+                    </h3>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {userProducts
+                        .sort((a, b) => getDaysUntilExpiration(a.expirationDate) - getDaysUntilExpiration(b.expirationDate))
+                        .map((product, index) => (
+                          <ProductCard
+                            key={product.id}
+                            product={product}
+                            onDelete={() => {}}
+                            index={index}
+                            readOnly
+                          />
+                        ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </motion.div>
         )}
       </div>
