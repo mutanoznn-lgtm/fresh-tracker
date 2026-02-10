@@ -17,7 +17,12 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
       setError("Preencha usuário e senha");
       return;
     }
-    onLogin(username.trim().toLowerCase());
+    const u = username.trim().toLowerCase();
+    if (u === "gabriela" && password !== "1010") {
+      setError("Senha incorreta");
+      return;
+    }
+    onLogin(u);
   };
 
   return (
