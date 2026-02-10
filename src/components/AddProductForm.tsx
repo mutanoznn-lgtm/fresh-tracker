@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Plus, Calendar } from "lucide-react";
-import { generateId, type Product } from "@/lib/products";
 
 interface AddProductFormProps {
-  onAdd: (product: Product) => void;
+  onAdd: (name: string, manufactureDate: string, expirationDate: string) => void;
 }
 
 const AddProductForm = ({ onAdd }: AddProductFormProps) => {
@@ -15,15 +14,7 @@ const AddProductForm = ({ onAdd }: AddProductFormProps) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !manufactureDate || !expirationDate) return;
-
-    const product: Product = {
-      id: generateId(),
-      name: name.trim(),
-      manufactureDate,
-      expirationDate,
-    };
-
-    onAdd(product);
+    onAdd(name.trim(), manufactureDate, expirationDate);
     setName("");
     setManufactureDate("");
     setExpirationDate("");
@@ -43,9 +34,7 @@ const AddProductForm = ({ onAdd }: AddProductFormProps) => {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="sm:col-span-2 lg:col-span-2">
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Nome do Produto
-          </label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">Nome do Produto</label>
           <input
             type="text"
             value={name}
@@ -55,11 +44,8 @@ const AddProductForm = ({ onAdd }: AddProductFormProps) => {
             required
           />
         </div>
-
         <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Data de Fabricação
-          </label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">Data de Fabricação</label>
           <div className="relative">
             <Calendar className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -71,11 +57,8 @@ const AddProductForm = ({ onAdd }: AddProductFormProps) => {
             />
           </div>
         </div>
-
         <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Data de Vencimento
-          </label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">Data de Vencimento</label>
           <div className="relative">
             <Calendar className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <input

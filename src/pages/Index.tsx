@@ -1,41 +1,29 @@
-import { useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
 import LoginScreen from "@/components/LoginScreen";
 import Dashboard from "@/components/Dashboard";
 
 const Index = () => {
-  const [user, setUser] = useState<string | null>(null);
+  const { user, loading } = useAuth();
 
-  const handleLogin = useCallback((username: string) => {
-    setUser(username);
-  }, []);
-
-  const handleLogout = useCallback(() => {
-    setUser(null);
-  }, []);
+  if (loading) {
+    return (
+      <div className="aurora-bg flex min-h-screen items-center justify-center">
+        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }} className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="aurora-bg min-h-screen">
       <AnimatePresence mode="wait">
         {!user ? (
-          <motion.div
-            key="login"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.3 }}
-          >
-            <LoginScreen onLogin={handleLogin} />
+          <motion.div key="login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.3 }}>
+            <LoginScreen />
           </motion.div>
         ) : (
-          <motion.div
-            key="dashboard"
-            initial={{ opacity: 0, scale: 1.02 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Dashboard user={user} onLogout={handleLogout} />
+          <motion.div key="dashboard" initial={{ opacity: 0, scale: 1.02 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+            <Dashboard />
           </motion.div>
         )}
       </AnimatePresence>
