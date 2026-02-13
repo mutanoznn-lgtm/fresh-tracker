@@ -1,31 +1,42 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { cn } from "@/lib/utils";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
+import { Plus, Calendar } from "lucide-react";
 
 interface AddProductFormProps {
   onAdd: (name: string, manufactureDate: string, expirationDate: string) => void;
 }
 
+function applyDateMask(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+function maskedToIso(masked: string): string | null {
+  const match = masked.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return null;
+  return `${match[3]}-${match[2]}-${match[1]}`;
+}
+
 const AddProductForm = ({ onAdd }: AddProductFormProps) => {
   const [name, setName] = useState("");
-  const [manufactureDate, setManufactureDate] = useState<Date>();
-  const [expirationDate, setExpirationDate] = useState<Date>();
+  const [manufDateText, setManufDateText] = useState("");
+  const [expDateText, setExpDateText] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !manufactureDate || !expirationDate) return;
-    const fmtDate = (d: Date) => format(d, "yyyy-MM-dd");
-    onAdd(name.trim(), fmtDate(manufactureDate), fmtDate(expirationDate));
+    const mfDate = maskedToIso(manufDateText);
+    const exDate = maskedToIso(expDateText);
+    if (!name.trim() || !mfDate || !exDate) return;
+    onAdd(name.trim(), mfDate, exDate);
     setName("");
-    setManufactureDate(undefined);
-    setExpirationDate(undefined);
+    setManufDateText("");
+    setExpDateText("");
   };
+
+  const inputClass =
+    "w-full rounded-lg border border-border bg-muted/50 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors";
 
   return (
     <motion.form
@@ -47,65 +58,43 @@ const AddProductForm = ({ onAdd }: AddProductFormProps) => {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Ex: Leite Integral"
-            className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+            className={inputClass}
             required
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Data de Fabricação</label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal border-border bg-muted/50 hover:bg-muted/70 h-[42px]",
-                  !manufactureDate && "text-muted-foreground/50"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                {manufactureDate ? format(manufactureDate, "dd/MM/yyyy") : "Selecione"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={manufactureDate}
-                onSelect={setManufactureDate}
-                locale={ptBR}
-                initialFocus
-                className="p-3 pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">Fabricação</label>
+          <div className="relative">
+            <Calendar className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              inputMode="numeric"
+              value={manufDateText}
+              onChange={(e) => setManufDateText(applyDateMask(e.target.value))}
+              placeholder="DD/MM/AAAA"
+              maxLength={10}
+              className={`${inputClass} pl-9`}
+              required
+            />
+          </div>
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Data de Vencimento</label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal border-border bg-muted/50 hover:bg-muted/70 h-[42px]",
-                  !expirationDate && "text-muted-foreground/50"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                {expirationDate ? format(expirationDate, "dd/MM/yyyy") : "Selecione"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={expirationDate}
-                onSelect={setExpirationDate}
-                locale={ptBR}
-                initialFocus
-                className="p-3 pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">Vencimento</label>
+          <div className="relative">
+            <Calendar className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              inputMode="numeric"
+              value={expDateText}
+              onChange={(e) => setExpDateText(applyDateMask(e.target.value))}
+              placeholder="DD/MM/AAAA"
+              maxLength={10}
+              className={`${inputClass} pl-9`}
+              required
+            />
+          </div>
         </div>
       </div>
 
