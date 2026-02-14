@@ -1,11 +1,31 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Trash2, Calendar, Clock } from "lucide-react";
+import { Trash2, Pencil, Calendar, Clock, Check, X } from "lucide-react";
 import type { Product } from "@/lib/products";
 import { getDaysUntilExpiration, getStatusColor, getStatusLabel, formatDate } from "@/lib/products";
+
+function applyDateMask(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+function maskedToIso(masked: string): string | null {
+  const match = masked.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return null;
+  return `${match[3]}-${match[2]}-${match[1]}`;
+}
+
+function isoToMasked(iso: string): string {
+  const [year, month, day] = iso.split("-");
+  return `${day}/${month}/${year}`;
+}
 
 interface ProductCardProps {
   product: Product;
   onDelete: (id: string) => void;
+  onEdit?: (id: string, name: string, manufactureDate: string, expirationDate: string) => void;
   index: number;
   readOnly?: boolean;
 }
@@ -22,10 +42,33 @@ const statusBadgeClasses = {
   red: "bg-neon-red/20 text-neon-red",
 };
 
-const ProductCard = ({ product, onDelete, index, readOnly }: ProductCardProps) => {
+const ProductCard = ({ product, onDelete, onEdit, index, readOnly }: ProductCardProps) => {
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(product.name);
+  const [editManuf, setEditManuf] = useState(isoToMasked(product.manufactureDate));
+  const [editExp, setEditExp] = useState(isoToMasked(product.expirationDate));
+
   const days = getDaysUntilExpiration(product.expirationDate);
   const status = getStatusColor(days);
   const label = getStatusLabel(days);
+
+  const handleSave = () => {
+    const mf = maskedToIso(editManuf);
+    const ex = maskedToIso(editExp);
+    if (!editName.trim() || !mf || !ex) return;
+    onEdit?.(product.id, editName.trim(), mf, ex);
+    setEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditName(product.name);
+    setEditManuf(isoToMasked(product.manufactureDate));
+    setEditExp(isoToMasked(product.expirationDate));
+    setEditing(false);
+  };
+
+  const inputClass =
+    "w-full rounded-lg border border-border bg-muted/50 px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors";
 
   return (
     <motion.div
@@ -36,44 +79,69 @@ const ProductCard = ({ product, onDelete, index, readOnly }: ProductCardProps) =
       transition={{ duration: 0.3, delay: index * 0.05 }}
       className={`float-card glass rounded-xl p-4 ${statusClasses[status]} transition-shadow`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate text-lg font-semibold text-foreground">
-            {product.name}
-          </h3>
-
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3.5 w-3.5" />
-              Fab: {formatDate(product.manufactureDate)}
-            </span>
-            <span className="flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5" />
-              Venc: {formatDate(product.expirationDate)}
-            </span>
+      {editing ? (
+        <div className="space-y-2">
+          <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className={inputClass} placeholder="Nome do produto" />
+          <div className="grid grid-cols-2 gap-2">
+            <input type="text" inputMode="numeric" value={editManuf} onChange={(e) => setEditManuf(applyDateMask(e.target.value))} placeholder="Fab: DD/MM/AAAA" maxLength={10} className={inputClass} />
+            <input type="text" inputMode="numeric" value={editExp} onChange={(e) => setEditExp(applyDateMask(e.target.value))} placeholder="Venc: DD/MM/AAAA" maxLength={10} className={inputClass} />
           </div>
-
-          <div className="mt-3">
-            <span
-              className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClasses[status]}`}
-            >
-              {label}
-            </span>
+          <div className="flex gap-2">
+            <motion.button whileTap={{ scale: 0.95 }} onClick={handleSave} className="flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
+              <Check className="h-3.5 w-3.5" /> Salvar
+            </motion.button>
+            <motion.button whileTap={{ scale: 0.95 }} onClick={handleCancel} className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground">
+              <X className="h-3.5 w-3.5" /> Cancelar
+            </motion.button>
           </div>
         </div>
+      ) : (
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate text-lg font-semibold text-foreground">
+              {product.name}
+            </h3>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5" />
+                Fab: {formatDate(product.manufactureDate)}
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" />
+                Venc: {formatDate(product.expirationDate)}
+              </span>
+            </div>
+            <div className="mt-3">
+              <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClasses[status]}`}>
+                {label}
+              </span>
+            </div>
+          </div>
 
-        {!readOnly && (
-          <motion.button
-            whileHover={{ scale: 1.15 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => onDelete(product.id)}
-            className="flex-shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-destructive/20 hover:text-destructive"
-            aria-label="Excluir produto"
-          >
-            <Trash2 className="h-4 w-4" />
-          </motion.button>
-        )}
-      </div>
+          {!readOnly && (
+            <div className="flex flex-shrink-0 gap-1">
+              <motion.button
+                whileHover={{ scale: 1.15 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setEditing(true)}
+                className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary"
+                aria-label="Editar produto"
+              >
+                <Pencil className="h-4 w-4" />
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.15 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => onDelete(product.id)}
+                className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-destructive/20 hover:text-destructive"
+                aria-label="Excluir produto"
+              >
+                <Trash2 className="h-4 w-4" />
+              </motion.button>
+            </div>
+          )}
+        </div>
+      )}
     </motion.div>
   );
 };

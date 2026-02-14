@@ -94,6 +94,19 @@ const Dashboard = () => {
     [fetchProducts, fetchAllUsers]
   );
 
+  const handleEdit = useCallback(
+    async (id: string, name: string, manufactureDate: string, expirationDate: string) => {
+      await supabase.from("products").update({
+        name,
+        manufacture_date: manufactureDate,
+        expiration_date: expirationDate,
+      }).eq("id", id);
+      fetchProducts();
+      fetchAllUsers();
+    },
+    [fetchProducts, fetchAllUsers]
+  );
+
   const sortedFiltered = useMemo(() => {
     const filtered = products.filter((p) =>
       p.name.toLowerCase().includes(search.toLowerCase())
@@ -206,7 +219,7 @@ const Dashboard = () => {
         <div className="grid gap-3 sm:grid-cols-2">
           <AnimatePresence mode="popLayout">
             {sortedFiltered.map((product, index) => (
-              <ProductCard key={product.id} product={product} onDelete={handleDelete} index={index} />
+              <ProductCard key={product.id} product={product} onDelete={handleDelete} onEdit={handleEdit} index={index} />
             ))}
           </AnimatePresence>
         </div>
