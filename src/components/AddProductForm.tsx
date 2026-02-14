@@ -2,10 +2,6 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Plus, Calendar } from "lucide-react";
 
-interface AddProductFormProps {
-  onAdd: (name: string, manufactureDate: string, expirationDate: string) => void;
-}
-
 function applyDateMask(value: string): string {
   const digits = value.replace(/\D/g, "").slice(0, 8);
   if (digits.length <= 2) return digits;
@@ -19,19 +15,28 @@ function maskedToIso(masked: string): string | null {
   return `${match[3]}-${match[2]}-${match[1]}`;
 }
 
+interface AddProductFormProps {
+  onAdd: (name: string, manufactureDate: string, expirationDate: string) => void;
+}
+
+function getTodayIso(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 const AddProductForm = ({ onAdd }: AddProductFormProps) => {
   const [name, setName] = useState("");
-  const [manufDateText, setManufDateText] = useState("");
   const [expDateText, setExpDateText] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const mfDate = maskedToIso(manufDateText);
     const exDate = maskedToIso(expDateText);
-    if (!name.trim() || !mfDate || !exDate) return;
-    onAdd(name.trim(), mfDate, exDate);
+    if (!name.trim() || !exDate) return;
+    onAdd(name.trim(), getTodayIso(), exDate);
     setName("");
-    setManufDateText("");
     setExpDateText("");
   };
 
@@ -50,8 +55,8 @@ const AddProductForm = ({ onAdd }: AddProductFormProps) => {
         Cadastro Rápido
       </h2>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="sm:col-span-2 lg:col-span-2">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="sm:col-span-2">
           <label className="mb-1 block text-xs font-medium text-muted-foreground">Nome do Produto</label>
           <input
             type="text"
@@ -61,23 +66,6 @@ const AddProductForm = ({ onAdd }: AddProductFormProps) => {
             className={inputClass}
             required
           />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Fabricação</label>
-          <div className="relative">
-            <Calendar className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              inputMode="numeric"
-              value={manufDateText}
-              onChange={(e) => setManufDateText(applyDateMask(e.target.value))}
-              placeholder="DD/MM/AAAA"
-              maxLength={10}
-              className={`${inputClass} pl-9`}
-              required
-            />
-          </div>
         </div>
 
         <div>

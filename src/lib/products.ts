@@ -34,7 +34,7 @@ export function generateWhatsAppText(products: { name: string; manufactureDate: 
   const lines = products.map((p) => {
     const days = getDaysUntilExpiration(p.expirationDate);
     const status = getStatusLabel(days);
-    return `📦 ${p.name} — Fab: ${formatDate(p.manufactureDate)} — Venc: ${formatDate(p.expirationDate)} — ${status}`;
+    return `📦 ${p.name} — Venc: ${formatDate(p.expirationDate)} — ${status}`;
   });
   return `🗂️ *Lista de Produtos*\n\n${lines.join("\n")}`;
 }

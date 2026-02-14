@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Trash2, Pencil, Calendar, Clock, Check, X } from "lucide-react";
+import { Trash2, Pencil, Clock, Check, X } from "lucide-react";
 import type { Product } from "@/lib/products";
 import { getDaysUntilExpiration, getStatusColor, getStatusLabel, formatDate } from "@/lib/products";
 
@@ -82,8 +82,7 @@ const ProductCard = ({ product, onDelete, onEdit, index, readOnly }: ProductCard
       {editing ? (
         <div className="space-y-2">
           <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className={inputClass} placeholder="Nome do produto" />
-          <div className="grid grid-cols-2 gap-2">
-            <input type="text" inputMode="numeric" value={editManuf} onChange={(e) => setEditManuf(applyDateMask(e.target.value))} placeholder="Fab: DD/MM/AAAA" maxLength={10} className={inputClass} />
+          <div>
             <input type="text" inputMode="numeric" value={editExp} onChange={(e) => setEditExp(applyDateMask(e.target.value))} placeholder="Venc: DD/MM/AAAA" maxLength={10} className={inputClass} />
           </div>
           <div className="flex gap-2">
@@ -101,14 +100,10 @@ const ProductCard = ({ product, onDelete, onEdit, index, readOnly }: ProductCard
             <h3 className="truncate text-lg font-semibold text-foreground">
               {product.name}
             </h3>
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3.5 w-3.5" />
-                Fab: {formatDate(product.manufactureDate)}
-              </span>
+            <div className="mt-2 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Clock className="h-3.5 w-3.5" />
-                Venc: {formatDate(product.expirationDate)}
+                Vencimento: {formatDate(product.expirationDate)}
               </span>
             </div>
             <div className="mt-3">
