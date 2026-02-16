@@ -77,7 +77,7 @@ const ProductCard = ({ product, onDelete, onEdit, index, readOnly }: ProductCard
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9, x: -50 }}
       transition={{ duration: 0.3, delay: index * 0.05 }}
-      className={`float-card glass rounded-xl p-4 ${statusClasses[status]} transition-shadow`}
+      className={`float-card glass rounded-xl p-4 overflow-hidden ${statusClasses[status]} transition-shadow`}
     >
       {editing ? (
         <div className="space-y-2">

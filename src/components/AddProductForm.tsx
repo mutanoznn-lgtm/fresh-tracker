@@ -48,7 +48,7 @@ const AddProductForm = ({ onAdd }: AddProductFormProps) => {
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       onSubmit={handleSubmit}
-      className="glass-strong rounded-xl p-5"
+      className="glass-strong rounded-xl p-5 overflow-hidden"
     >
       <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
         <Plus className="h-5 w-5 text-primary" />
