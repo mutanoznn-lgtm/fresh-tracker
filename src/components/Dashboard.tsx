@@ -138,8 +138,8 @@ const Dashboard = () => {
   }, [products]);
 
   return (
-    <div className="min-h-screen overflow-x-hidden p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-5xl overflow-hidden">
+    <div className="min-h-screen overflow-x-clip p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto max-w-5xl overflow-x-clip">
         {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -20 }}
