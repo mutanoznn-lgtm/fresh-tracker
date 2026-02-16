@@ -32,7 +32,7 @@ const toCard = (p: DbProduct): CardProduct => ({
 const Dashboard = () => {
   const { user, username, isAdmin, signOut } = useAuth();
   const [products, setProducts] = useState<CardProduct[]>([]);
-  const [allUsersData, setAllUsersData] = useState<{ user: string; products: CardProduct[] }[]>([]);
+  const [allProducts, setAllProducts] = useState<(CardProduct & { username: string })[]>([]);
   const [search, setSearch] = useState("");
   const [copied, setCopied] = useState(false);
 
@@ -46,29 +46,24 @@ const Dashboard = () => {
     setProducts((data ?? []).map(toCard));
   }, [user]);
 
-  const fetchAllUsers = useCallback(async () => {
+  const fetchAllProducts = useCallback(async () => {
     if (!isAdmin) return;
     const { data: profiles } = await supabase.from("profiles").select("user_id, username");
-    const { data: allProducts } = await supabase.from("products").select("*").order("expiration_date", { ascending: true });
-    if (!profiles || !allProducts) return;
+    const { data: prods } = await supabase.from("products").select("*").order("expiration_date", { ascending: true });
+    if (!profiles || !prods) return;
 
-    const grouped: Record<string, { user: string; products: CardProduct[] }> = {};
-    for (const profile of profiles) {
-      if (profile.user_id === user?.id) continue;
-      const userProds = allProducts
-        .filter((p: any) => p.user_id === profile.user_id)
-        .map(toCard);
-      if (userProds.length > 0) {
-        grouped[profile.user_id] = { user: profile.username, products: userProds };
-      }
-    }
-    setAllUsersData(Object.values(grouped));
-  }, [isAdmin, user]);
+    const profileMap: Record<string, string> = {};
+    for (const p of profiles) profileMap[p.user_id] = p.username;
+
+    setAllProducts(
+      prods.map((p: any) => ({ ...toCard(p), username: profileMap[p.user_id] ?? "Desconhecido" }))
+    );
+  }, [isAdmin]);
 
   useEffect(() => {
     fetchProducts();
-    fetchAllUsers();
-  }, [fetchProducts, fetchAllUsers]);
+    fetchAllProducts();
+  }, [fetchProducts, fetchAllProducts]);
 
   const handleAdd = useCallback(
     async (name: string, manufactureDate: string, expirationDate: string) => {
@@ -80,18 +75,18 @@ const Dashboard = () => {
         expiration_date: expirationDate,
       });
       fetchProducts();
-      fetchAllUsers();
+      fetchAllProducts();
     },
-    [user, fetchProducts, fetchAllUsers]
+    [user, fetchProducts, fetchAllProducts]
   );
 
   const handleDelete = useCallback(
     async (id: string) => {
       await supabase.from("products").delete().eq("id", id);
       fetchProducts();
-      fetchAllUsers();
+      fetchAllProducts();
     },
-    [fetchProducts, fetchAllUsers]
+    [fetchProducts, fetchAllProducts]
   );
 
   const handleEdit = useCallback(
@@ -102,9 +97,9 @@ const Dashboard = () => {
         expiration_date: expirationDate,
       }).eq("id", id);
       fetchProducts();
-      fetchAllUsers();
+      fetchAllProducts();
     },
-    [fetchProducts, fetchAllUsers]
+    [fetchProducts, fetchAllProducts]
   );
 
   const sortedFiltered = useMemo(() => {
@@ -244,29 +239,22 @@ const Dashboard = () => {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-10">
             <div className="mb-4 flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
-              <h2 className="text-xl font-bold text-foreground">Todos os Usuários</h2>
+              <h2 className="text-xl font-bold text-foreground">Todos os Produtos</h2>
+              <span className="text-sm text-muted-foreground">({allProducts.length})</span>
             </div>
-            {allUsersData.length === 0 ? (
+            {allProducts.length === 0 ? (
               <div className="glass rounded-xl p-8 text-center">
                 <Eye className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" />
-                <p className="text-muted-foreground">Nenhum outro usuário cadastrou produtos ainda</p>
+                <p className="text-muted-foreground">Nenhum produto cadastrado ainda</p>
               </div>
             ) : (
-              <div className="space-y-6">
-                {allUsersData.map(({ user: userName, products: userProducts }) => (
-                  <div key={userName} className="glass-strong rounded-xl p-5">
-                    <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold text-foreground">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/20 text-sm font-bold text-secondary">
-                        {userName.charAt(0).toUpperCase()}
-                      </div>
-                      {userName}
-                      <span className="text-sm font-normal text-muted-foreground">({userProducts.length} produto{userProducts.length !== 1 ? "s" : ""})</span>
-                    </h3>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {userProducts.map((product, index) => (
-                        <ProductCard key={product.id} product={product} onDelete={() => {}} index={index} readOnly />
-                      ))}
-                    </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {allProducts.map((product, index) => (
+                  <div key={product.id} className="relative">
+                    <ProductCard product={product} onDelete={() => {}} index={index} readOnly />
+                    <span className="absolute top-2 right-2 rounded-full bg-muted/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      {product.username}
+                    </span>
                   </div>
                 ))}
               </div>
