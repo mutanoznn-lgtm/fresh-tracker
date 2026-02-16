@@ -65,6 +65,11 @@
     @apply border-border;
   }
 
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
   body {
     @apply bg-background text-foreground font-sans;
     font-family: 'Space Grotesk', sans-serif;
@@ -122,38 +127,26 @@
 /* Neon card borders */
 .neon-green {
   border-color: hsl(var(--neon-green));
-  box-shadow: 0 0 15px hsl(var(--neon-green-glow)),
-    inset 0 0 15px hsl(var(--neon-green-glow));
+  box-shadow: 0 0 8px hsl(var(--neon-green-glow));
 }
 
 .neon-yellow {
   border-color: hsl(var(--neon-yellow));
-  box-shadow: 0 0 15px hsl(var(--neon-yellow-glow)),
-    inset 0 0 15px hsl(var(--neon-yellow-glow));
+  box-shadow: 0 0 8px hsl(var(--neon-yellow-glow));
 }
 
 .neon-red {
   border-color: hsl(var(--neon-red));
-  box-shadow: 0 0 15px hsl(var(--neon-red-glow)),
-    inset 0 0 15px hsl(var(--neon-red-glow));
+  box-shadow: 0 0 8px hsl(var(--neon-red-glow));
 }
 
-/* Floating animation */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
-}
-
+/* Subtle hover lift instead of continuous float */
 .float-card {
-  animation: float 4s ease-in-out infinite;
+  transition: transform 0.2s ease;
 }
 
-.float-card:nth-child(2n) {
-  animation-delay: -1s;
-}
-
-.float-card:nth-child(3n) {
-  animation-delay: -2s;
+.float-card:hover {
+  transform: translateY(-2px);
 }
 
 /* Scrollbar */
