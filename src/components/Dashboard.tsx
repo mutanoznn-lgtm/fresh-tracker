@@ -1,9 +1,10 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LogOut, Search, Copy, Package, CheckCircle, Eye, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { getDaysUntilExpiration, generateWhatsAppText } from "@/lib/products";
+import { getDaysUntilExpiration, generateWhatsAppText, getStatusLabel } from "@/lib/products";
+import { useToast } from "@/hooks/use-toast";
 import AddProductForm from "./AddProductForm";
 import ProductCard from "./ProductCard";
 
@@ -31,10 +32,12 @@ const toCard = (p: DbProduct): CardProduct => ({
 
 const Dashboard = () => {
   const { user, username, isAdmin, signOut } = useAuth();
+  const { toast } = useToast();
   const [products, setProducts] = useState<CardProduct[]>([]);
   const [allProducts, setAllProducts] = useState<(CardProduct & { username: string })[]>([]);
   const [search, setSearch] = useState("");
   const [copied, setCopied] = useState(false);
+  const notifiedRef = useRef(false);
 
   const fetchProducts = useCallback(async () => {
     if (!user) return;
@@ -64,6 +67,24 @@ const Dashboard = () => {
     fetchProducts();
     fetchAllProducts();
   }, [fetchProducts, fetchAllProducts]);
+
+  // Notificações de produtos próximos do vencimento
+  useEffect(() => {
+    if (notifiedRef.current || products.length === 0) return;
+    const urgent = products.filter((p) => {
+      const d = getDaysUntilExpiration(p.expirationDate);
+      return d >= 0 && d <= 3;
+    });
+    if (urgent.length > 0) {
+      notifiedRef.current = true;
+      toast({
+        title: `⚠️ ${urgent.length} produto${urgent.length > 1 ? "s" : ""} vencendo em breve!`,
+        description: urgent.slice(0, 3).map((p) => `${p.name} — ${getStatusLabel(getDaysUntilExpiration(p.expirationDate))}`).join("\n"),
+        variant: "destructive",
+        duration: 8000,
+      });
+    }
+  }, [products, toast]);
 
   const handleAdd = useCallback(
     async (name: string, manufactureDate: string, expirationDate: string) => {
