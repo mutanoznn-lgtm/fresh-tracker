@@ -243,64 +243,57 @@ const Dashboard = () => {
         </motion.div>
 
         {/* Product List */}
-        <div className="grid gap-3 sm:grid-cols-2">
-          <AnimatePresence mode="popLayout">
-            {sortedFiltered.map((product, index) => (
-              <ProductCard key={product.id} product={product} onDelete={handleDelete} onEdit={handleEdit} index={index} />
-            ))}
-          </AnimatePresence>
-        </div>
+        {!showAllProducts ? (
+          <>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <AnimatePresence mode="popLayout">
+                {sortedFiltered.map((product, index) => (
+                  <ProductCard key={product.id} product={product} onDelete={handleDelete} onEdit={handleEdit} index={index} />
+                ))}
+              </AnimatePresence>
+            </div>
 
-        {products.length === 0 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mt-12 text-center">
-            <Package className="mx-auto mb-4 h-16 w-16 text-muted-foreground/30" />
-            <p className="text-lg font-medium text-muted-foreground">Nenhum produto cadastrado</p>
-            <p className="text-sm text-muted-foreground/60">Use o formulário acima para adicionar seu primeiro produto</p>
-          </motion.div>
-        )}
+            {products.length === 0 && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mt-12 text-center">
+                <Package className="mx-auto mb-4 h-16 w-16 text-muted-foreground/30" />
+                <p className="text-lg font-medium text-muted-foreground">Nenhum produto cadastrado</p>
+                <p className="text-sm text-muted-foreground/60">Use o formulário acima para adicionar seu primeiro produto</p>
+              </motion.div>
+            )}
 
-        {products.length > 0 && sortedFiltered.length === 0 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-12 text-center">
-            <Search className="mx-auto mb-4 h-12 w-12 text-muted-foreground/30" />
-            <p className="text-muted-foreground">Nenhum produto encontrado para "{search}"</p>
-          </motion.div>
-        )}
-
-        {/* All Products Panel */}
-        <AnimatePresence>
-          {showAllProducts && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="mt-6 overflow-hidden"
-            >
-              <div className="mb-4 flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" />
-                <h2 className="text-xl font-bold text-foreground">Todos os Produtos</h2>
-                <span className="text-sm text-muted-foreground">({allProducts.length})</span>
+            {products.length > 0 && sortedFiltered.length === 0 && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-12 text-center">
+                <Search className="mx-auto mb-4 h-12 w-12 text-muted-foreground/30" />
+                <p className="text-muted-foreground">Nenhum produto encontrado para "{search}"</p>
+              </motion.div>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="mb-4 flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-bold text-foreground">Todos os Produtos</h2>
+              <span className="text-sm text-muted-foreground">({allProducts.length})</span>
+            </div>
+            {allProducts.length === 0 ? (
+              <div className="glass rounded-xl p-8 text-center">
+                <Eye className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" />
+                <p className="text-muted-foreground">Nenhum produto cadastrado ainda</p>
               </div>
-              {allProducts.length === 0 ? (
-                <div className="glass rounded-xl p-8 text-center">
-                  <Eye className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" />
-                  <p className="text-muted-foreground">Nenhum produto cadastrado ainda</p>
-                </div>
-              ) : (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {allProducts.map((product, index) => (
-                    <div key={product.id} className="relative">
-                      <ProductCard product={product} onDelete={() => {}} index={index} readOnly />
-                      <span className="absolute top-2 right-2 rounded-full bg-muted/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                        {product.username}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {allProducts.map((product, index) => (
+                  <div key={product.id} className="relative">
+                    <ProductCard product={product} onDelete={() => {}} index={index} readOnly />
+                    <span className="absolute top-2 right-2 rounded-full bg-muted/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      {product.username}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
