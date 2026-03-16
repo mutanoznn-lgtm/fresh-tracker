@@ -256,31 +256,54 @@ const Dashboard = () => {
           </motion.div>
         )}
 
-        {/* All Products Panel */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-10">
-          <div className="mb-4 flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            <h2 className="text-xl font-bold text-foreground">Todos os Produtos</h2>
-            <span className="text-sm text-muted-foreground">({allProducts.length})</span>
-          </div>
-          {allProducts.length === 0 ? (
-            <div className="glass rounded-xl p-8 text-center">
-              <Eye className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" />
-              <p className="text-muted-foreground">Nenhum produto cadastrado ainda</p>
-            </div>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {allProducts.map((product, index) => (
-                <div key={product.id} className="relative">
-                  <ProductCard product={product} onDelete={() => {}} index={index} readOnly />
-                  <span className="absolute top-2 right-2 rounded-full bg-muted/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                    {product.username}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+        {/* Toggle All Products Button */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mt-8 flex justify-center">
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setShowAllProducts((v) => !v)}
+            className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-6 py-3 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+          >
+            <Users className="h-4 w-4" />
+            {showAllProducts ? "Ocultar produtos de outros usuários" : "Ver produtos de outros usuários"}
+          </motion.button>
         </motion.div>
+
+        {/* All Products Panel */}
+        <AnimatePresence>
+          {showAllProducts && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mt-6 overflow-hidden"
+            >
+              <div className="mb-4 flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-bold text-foreground">Todos os Produtos</h2>
+                <span className="text-sm text-muted-foreground">({allProducts.length})</span>
+              </div>
+              {allProducts.length === 0 ? (
+                <div className="glass rounded-xl p-8 text-center">
+                  <Eye className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" />
+                  <p className="text-muted-foreground">Nenhum produto cadastrado ainda</p>
+                </div>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {allProducts.map((product, index) => (
+                    <div key={product.id} className="relative">
+                      <ProductCard product={product} onDelete={() => {}} index={index} readOnly />
+                      <span className="absolute top-2 right-2 rounded-full bg-muted/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        {product.username}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
