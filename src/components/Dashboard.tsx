@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import logoSantaRita from "@/assets/logo-santa-rita.png";
 import { LogOut, Search, Copy, Package, CheckCircle, Eye, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -166,9 +167,9 @@ const Dashboard = () => {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6 text-center"
+          className="mb-6 flex justify-center"
         >
-          <h2 className="text-2xl font-bold tracking-wide text-primary sm:text-3xl">Grupo Santa Rita</h2>
+          <img src={logoSantaRita} alt="Atacadão Santa Rita" className="h-20 sm:h-24 w-auto" />
         </motion.div>
 
         {/* Header */}
