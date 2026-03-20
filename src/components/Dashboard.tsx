@@ -295,7 +295,7 @@ const Dashboard = () => {
               <div className="grid gap-3 sm:grid-cols-2">
                 {allProducts.map((product, index) => (
                   <div key={product.id} className="relative">
-                    <ProductCard product={product} onDelete={() => {}} index={index} readOnly />
+                    <ProductCard product={product} onDelete={handleDelete} onEdit={handleEdit} index={index} />
                     <span className="absolute top-2 right-2 rounded-full bg-muted/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                       {product.username}
                     </span>
